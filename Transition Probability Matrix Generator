@@ -13,8 +13,17 @@ dim_H = 11;
 % if matrix_generation = false, the utilized transition probability matrices in the paper will be generated. 
 matrix_generation = false; 
 
-% Initialized vector for transition probability matrices generation.
-Vect = 1/100*[ 20,            1,          2,         8,          9,          8,          6,           4,         5,           11,        26];
+% Initialized vector for observable transition probability matrix
+% generation. Note that, by changing the 'dim_O,' this vector must be
+% changed manually in a way that the number of the elements becomes 'dim_O'
+% and the summation of the become 100.
+Vect_O = 1/100*[ 20,            1,          2,         8,          9,          8,          19,           4,         5,           24];
+
+% Initialized vector for hidden transition probability matrix generation. Note that by changing the 'dim_H,' this vector must be
+% changed manually so that the number of the elements becomes 'dim_H.'
+% and the summation of the become 100.
+Vect_H = 1/100*[ 20,            1,          2,         8,          9,          8,          6,           4,         5,           11,        26];
+
 
 % The process of transition probability matrices generation. 
 % P_O: observable transition matrix, P_H: hidden transition matrix
@@ -23,12 +32,12 @@ if matrix_generation == true
 
     P_O = [];
     for i=1:dim_O 
-       P_O = [P_O; Vect(randperm(dim_O))]; 
+       P_O = [P_O; Vect_O(randperm(dim_O))]; 
     end;
 
     P_H = [];
     for i=1:dim_H 
-       P_H = [P_H; Vect(randperm(dim_H))]; 
+       P_H = [P_H; Vect_H(randperm(dim_H))]; 
     end;
     
 
@@ -73,16 +82,4 @@ pi_H = (1/sum(pi_H))*pi_H;
 [~,m] = max(diag(EigVal))
 pi_O = EigVec(:,m);
 pi_O = (1/sum(pi_O))*pi_O;
-
-
-
-
-
-
-
-
-
-
-
-
 
