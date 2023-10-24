@@ -72,14 +72,14 @@ end;
 % The calculation of the hidden states' stationary distribution. 
 % pi_H: the hidden states' stationary distribution. 
 [EigVec,EigVal] = eig(P_H');
-[~,m] = max(diag(EigVal))
+[~,m] = max(diag(EigVal));
 pi_H = EigVec(:,m);
 pi_H = (1/sum(pi_H))*pi_H;
 
 % The calculation of the observable states' stationary distribution. 
 % pi_O: the observable states' stationary distribution. 
 [EigVec,EigVal] = eig(P_O');
-[~,m] = max(diag(EigVal))
+[~,m] = max(diag(EigVal));
 pi_O = EigVec(:,m);
 pi_O = (1/sum(pi_O))*pi_O;
 
