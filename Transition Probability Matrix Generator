@@ -1,0 +1,88 @@
+clc 
+clear
+
+% Dimention of observable transition matrix (The number of observable
+% states): dim_O * dim_O
+dim_O = 10;
+
+% Dimention of hidden transition matrix (The number of hidden
+% states): dim_H * dim_H
+dim_H = 11;
+
+% if matrix_generation = ture, new transition probability matrices will be generated. 
+% if matrix_generation = false, the utilized transition probability matrices in the paper will be generated. 
+matrix_generation = false; 
+
+% Initialized vector for transition probability matrices generation.
+Vect = 1/100*[ 20,            1,          2,         8,          9,          8,          6,           4,         5,           11,        26];
+
+% The process of transition probability matrices generation. 
+% P_O: observable transition matrix, P_H: hidden transition matrix
+if matrix_generation == true
+
+
+    P_O = [];
+    for i=1:dim_O 
+       P_O = [P_O; Vect(randperm(dim_O))]; 
+    end;
+
+    P_H = [];
+    for i=1:dim_H 
+       P_H = [P_H; Vect(randperm(dim_H))]; 
+    end;
+    
+
+else
+
+    P_O = 1/100*[ 1,           20,         23,         2,          3,          4,          7,          11,         9,          20;
+                  2,           20,         20,         9,         11,          7,          1,          23,         4,           3;
+                  1,            9,          2,         3,          4,         20,         23,           7,        11,          20;
+                  7,            2,          3,        23,          4,         11,         20,           9,         1,          20;
+                  2,           20,          7,         3,         20,          9,         23,          11,         4,           1;
+                  9,            7,          4,         2,          3,         11,         23,          20,        20,           1;
+                  2,            9,         20,        11,          7,         23,          1,          20,         3,           4;
+                  2,            9,          1,        20,          3,          4,         20,          23,         7,          11;
+                  9,            3,          1,        20,         23,          4,          2,          20,         7,          11;
+                 23,            3,          9,        11,         20,          7,         20,           1,         4,           2];
+
+
+    P_H = [0.0200,	0.0400,	0.0600,	0.0800,	0.0800,	0.2600,	0.0900,	0.2000,	0.0100,	0.0500,	0.1100;
+           0.0600,	0.0500,	0.1100,	0.2000,	0.0100,	0.2600,	0.0200,	0.0800,	0.0800,	0.0900,	0.0400;
+           0.0500,	0.0800,	0.0400,	0.0800,	0.0900,	0.2600,	0.0200,	0.0100,	0.2000,	0.1100,	0.0600;
+           0.2000,	0.2600,	0.0900,	0.0600,	0.0800,	0.0400,	0.0100,	0.0200,	0.0500,	0.0800,	0.1100;
+           0.0600,	0.0800,	0.2000,	0.0800,	0.0100,	0.2600,	0.1100,	0.0900,	0.0500,	0.0400,	0.0200;
+           0.0800,	0.0900,	0.1100,	0.0800,	0.2000,	0.2600,	0.0400,	0.0100,	0.0200,	0.0600,	0.0500;
+           0.0400,	0.0100,	0.0800,	0.1100,	0.0900,	0.2000,	0.0600,	0.0800,	0.0500,	0.2600,	0.0200;
+           0.0800,	0.0500,	0.0200,	0.0600,	0.2600,	0.1100,	0.0900,	0.0800,	0.2000,	0.0400,	0.0100;
+           0.2600,	0.0100,	0.0800,	0.1100,	0.0200,	0.0400,	0.0500,	0.0800,	0.0600,	0.2000,	0.0900;
+           0.0800,	0.2000,	0.0100,	0.0500,	0.2600,	0.0400,	0.0800,	0.1100,	0.0600,	0.0900,	0.0200;
+           0.0600,	0.0800,	0.0900,	0.1100,	0.2000,	0.2600,	0.0400,	0.0800,	0.0200,	0.0500,	0.0100];
+
+end;
+
+% The calculation of the hidden states' stationary distribution. 
+% pi_H: the hidden states' stationary distribution. 
+[EigVec,EigVal] = eig(P_H');
+[~,m] = max(diag(EigVal))
+pi_H = EigVec(:,m);
+pi_H = (1/sum(pi_H))*pi_H;
+
+% The calculation of the observable states' stationary distribution. 
+% pi_O: the observable states' stationary distribution. 
+[EigVec,EigVal] = eig(P_O');
+[~,m] = max(diag(EigVal))
+pi_O = EigVec(:,m);
+pi_O = (1/sum(pi_O))*pi_O;
+
+
+
+
+
+
+
+
+
+
+
+
+
