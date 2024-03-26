@@ -1,85 +1,224 @@
-clc 
-clear
-
-% Dimention of observable transition matrix (The number of observable
-% states): dim_O * dim_O
-dim_O = 10;
-
-% Dimention of hidden transition matrix (The number of hidden
-% states): dim_H * dim_H
-dim_H = 11;
-
-% if matrix_generation = ture, new transition probability matrices will be generated. 
-% if matrix_generation = false, the utilized transition probability matrices in the paper will be generated. 
-matrix_generation = false; 
-
-% Initialized vector for observable transition probability matrix
-% generation. Note that, by changing the 'dim_O,' this vector must be
-% changed manually in a way that the number of the elements becomes 'dim_O'
-% and the summation of the become 100.
-Vect_O = 1/100*[ 20,            1,          2,         8,          9,          8,          19,           4,         5,           24];
-
-% Initialized vector for hidden transition probability matrix generation. Note that by changing the 'dim_H,' this vector must be
-% changed manually so that the number of the elements becomes 'dim_H.'
-% and the summation of the become 100.
-Vect_H = 1/100*[ 20,            1,          2,         8,          9,          8,          6,           4,         5,           11,        26];
+import numpy as np
+import numpy.matlib
+import matplotlib.pylab as plt
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
+import copy
+import seaborn as sns
+from tqdm import tqdm
+import pandas as pd
 
 
-% The process of transition probability matrices generation. 
-% P_O: observable transition matrix, P_H: hidden transition matrix
-if matrix_generation == true
+# This class creates the environment and the agent can observe the subsequent states and rewards from it
+class env:
+    def __init__(self, seed_observable_states, seed_hidden_states, seed_reward, pi_H, type_observable_states, type_hidden_states):
+        self.seed_observable_states = seed_observable_states
+        self.seed_hidden_states = seed_hidden_states
+        self.reward = seed_reward
+        self.pi_H = pi_H
+        self.type_observable_states = type_observable_states
+        self.type_hidden_states = type_hidden_states
 
-
-    P_O = [];
-    for i=1:dim_O 
-       P_O = [P_O; Vect_O(randperm(dim_O))]; 
-    end;
-
-    P_H = [];
-    for i=1:dim_H 
-       P_H = [P_H; Vect_H(randperm(dim_H))]; 
-    end;
+    def env_dynamic(self):
+        return self.dynamic
     
+    def make_env(self):
+        
+        
+        if self.type_observable_states != None:
+            self.n_dim_observable_states = np.size(self.seed_observable_states)
+            self.P_O_O = (self.seed_observable_states).reshape((1, np.size(self.seed_observable_states)))
+            for i in range(self.n_dim_observable_states-1):
+                if self.type_observable_states == 'random':
+                    self.P_O_O = np.concatenate((self.P_O_O, (np.random.permutation(self.seed_observable_states)).reshape(1, self.n_dim_observable_states)), axis=0)
+                elif self.type_observable_states == 'symmetric':
+                    self.P_O_O = np.concatenate((self.P_O_O, (np.roll(self.seed_observable_states, int(i+1))).reshape(1, self.n_dim_observable_states)), axis=0)
+        elif self.type_observable_states == None:
+            self.n_dim_observable_states = np.size(self.seed_observable_states, axis=0)
+            self.P_O_O = copy.deepcopy(self.seed_observable_states)
 
-else
 
-    P_O = 1/100*[ 1,           20,         23,         2,          3,          4,          7,          11,         9,          20;
-                  2,           20,         20,         9,         11,          7,          1,          23,         4,           3;
-                  1,            9,          2,         3,          4,         20,         23,           7,        11,          20;
-                  7,            2,          3,        23,          4,         11,         20,           9,         1,          20;
-                  2,           20,          7,         3,         20,          9,         23,          11,         4,           1;
-                  9,            7,          4,         2,          3,         11,         23,          20,        20,           1;
-                  2,            9,         20,        11,          7,         23,          1,          20,         3,           4;
-                  2,            9,          1,        20,          3,          4,         20,          23,         7,          11;
-                  9,            3,          1,        20,         23,          4,          2,          20,         7,          11;
-                 23,            3,          9,        11,         20,          7,         20,           1,         4,           2];
+        if self.type_hidden_states != None:  
+            self.n_dim_hidden_states = np.size(self.seed_hidden_states)
+            self.P_H_H = (self.seed_hidden_states).reshape((1, np.size(self.seed_hidden_states)))
+            for i in range(self.n_dim_hidden_states-1):
+                if self.type_hidden_states == 'random':
+                    self.P_H_H = np.concatenate((self.P_H_H, (np.random.permutation(self.seed_hidden_states)).reshape(1, self.n_dim_hidden_states)), axis=0)
+                elif self.type_hidden_states == 'symmetric':
+                    self.P_H_H = np.concatenate((self.P_H_H, (np.roll(self.seed_hidden_states, int(i+1))).reshape(1, self.n_dim_hidden_states)), axis=0)
+        elif self.type_hidden_states == None:
+            self.n_dim_hidden_states = np.size(self.seed_hidden_states, axis=0)
+            self.P_H_H = copy.deepcopy(self.seed_hidden_states)
+
+        if (self.pi_H).size == 0:
+            eig_vals, eig_vects = np.linalg.eig(self.P_H_H)
+            indx = 0
+            self.pi_H = np.abs(eig_vects[:, int(indx)])/np.sum(np.abs(eig_vects[:, int(indx)]))
 
 
-    P_H = [0.0200,	0.0400,	0.0600,	0.0800,	0.0800,	0.2600,	0.0900,	0.2000,	0.0100,	0.0500,	0.1100;
-           0.0600,	0.0500,	0.1100,	0.2000,	0.0100,	0.2600,	0.0200,	0.0800,	0.0800,	0.0900,	0.0400;
-           0.0500,	0.0800,	0.0400,	0.0800,	0.0900,	0.2600,	0.0200,	0.0100,	0.2000,	0.1100,	0.0600;
-           0.2000,	0.2600,	0.0900,	0.0600,	0.0800,	0.0400,	0.0100,	0.0200,	0.0500,	0.0800,	0.1100;
-           0.0600,	0.0800,	0.2000,	0.0800,	0.0100,	0.2600,	0.1100,	0.0900,	0.0500,	0.0400,	0.0200;
-           0.0800,	0.0900,	0.1100,	0.0800,	0.2000,	0.2600,	0.0400,	0.0100,	0.0200,	0.0600,	0.0500;
-           0.0400,	0.0100,	0.0800,	0.1100,	0.0900,	0.2000,	0.0600,	0.0800,	0.0500,	0.2600,	0.0200;
-           0.0800,	0.0500,	0.0200,	0.0600,	0.2600,	0.1100,	0.0900,	0.0800,	0.2000,	0.0400,	0.0100;
-           0.2600,	0.0100,	0.0800,	0.1100,	0.0200,	0.0400,	0.0500,	0.0800,	0.0600,	0.2000,	0.0900;
-           0.0800,	0.2000,	0.0100,	0.0500,	0.2600,	0.0400,	0.0800,	0.1100,	0.0600,	0.0900,	0.0200;
-           0.0600,	0.0800,	0.0900,	0.1100,	0.2000,	0.2600,	0.0400,	0.0800,	0.0200,	0.0500,	0.0100];
+        self.dynamic = {
+                "n_dim_observable_states"      : self.n_dim_observable_states,
+                "P_O_O"                        : self.P_O_O,
+                "n_dim_hidden_states"          : self.n_dim_hidden_states,
+                "P_H_H"                        : self.P_H_H,
+                "R"                            : self.reward,
+                "pi_H"                         : self.pi_H
+            }
 
-end;
 
-% The calculation of the hidden states' stationary distribution. 
-% pi_H: the hidden states' stationary distribution. 
-[EigVec,EigVal] = eig(P_H');
-[~,m] = max(diag(EigVal));
-pi_H = EigVec(:,m);
-pi_H = (1/sum(pi_H))*pi_H;
+        
+    
+    def observe(self):
+        
+        reward = self.reward[int(self.state_observable), int(self.state_hidden)]
+        self.state_hidden = np.random.choice(int(self.n_dim_hidden_states), 1, p=self.P_H_H[self.state_hidden, :].reshape(int(self.n_dim_hidden_states)))
+        self.state_observable = np.random.choice(int(self.n_dim_observable_states), 1, p=self.P_O_O[self.state_observable, :].reshape(int(self.n_dim_observable_states)))
+        
 
-% The calculation of the observable states' stationary distribution. 
-% pi_O: the observable states' stationary distribution. 
-[EigVec,EigVal] = eig(P_O');
-[~,m] = max(diag(EigVal));
-pi_O = EigVec(:,m);
-pi_O = (1/sum(pi_O))*pi_O;
+        return self.state_observable, reward
+    
+    def reset(self, init_state_observable, init_state_hidden):
+        self.state_observable = init_state_observable
+        self.state_hidden = init_state_hidden
+
+
+
+
+# Settings of example 1
+gamma = 0.5
+Rep_max = 100
+episode_max = 5e+3
+beta = 10
+seed_observable_states = np.array([[0.3, 0.7], [0.2, 0.8]])
+seed_hidden_states = np.array([[0.9, 0.1], [0.8, 0.2]])
+seed_reward = np.array([[0, -1], [-1, 0]])
+pi_H = np.array([8/9, 1/9])
+type_observable_states = None
+type_hidden_states = None
+init_state_observable = 0
+init_state_hidden = 0
+a_l = -0.1
+a_h = 0.3
+b_l = -0.2
+b_h = 0.2
+c_l = -0.2
+c_h = 0.2
+
+# # Settings of example 2
+# gamma = 0.5
+# Rep_max = 100
+# episode_max = 5e+4
+# beta = 10
+# seed_observable_states = np.array([0.03, 0.12, 0.1, 0.05, 0.05, 0.15, 0.15, 0.13, 0.12, 0.1])
+# seed_hidden_states = np.array([0.03, 0.12, 0.1, 0.05, 0.05, 0.11, 0.11, 0.13, 0.12, 0.1, 0.08])
+# seed_reward = np.array([
+#               [  1,     0,    0,     0,      0,      0,     0,      0,      0,      0,     0],
+#               [  0,     1,    0,     0,      0,      0,     0,      0,      0,      0,     0],
+#               [  0,     0,    1,     0,      0,      0,     0,      0,      0,      0,     0],
+#               [  0,     0,    0,     1,      0,      0,     0,      0,      0,      0,     0],
+#               [  0,     0,    0,     0,      1,      0,     0,      0,      0,      0,     0],
+#               [  0,     0,    0,     0,      0,      1,     0,      0,      0,      0,     0],
+#               [  0,     0,    0,     0,      0,      0,     1,      0,      0,      0,     0],
+#               [  0,     0,    0,     0,      0,      0,     0,      1,      0,      0,     0],
+#               [  0,     0,    0,     0,      0,      0,     0,      0,      1,      0,     0],
+#               [  0,     0,    0,     0,      0,      0,     0,      0,      0,      1,     1],
+#               ])
+# pi_H = np.array([])
+# type_observable_states = 'random'
+# type_hidden_states = 'symmetric'
+# init_state_observable = 0
+# init_state_hidden = 0
+# a_l = -0.05
+# a_h = 0.5
+# b_l = -0.3
+# b_h = 0.3
+# c_l = -0.3
+# c_h = 0.3
+
+# Generating the environment
+environment = env(seed_observable_states, seed_hidden_states, seed_reward, pi_H, type_observable_states, type_hidden_states)
+environment.make_env()
+environment_dynamic = environment.env_dynamic()
+pi_H = environment_dynamic["pi_H"]
+R = environment_dynamic["R"]
+P_O_O = environment_dynamic["P_O_O"]
+n_dim_observable_states = environment_dynamic["n_dim_observable_states"]
+
+# Optimal value function calculation
+ValueFunction_opt = np.matmul(np.matmul(np.linalg.inv(np.eye(n_dim_observable_states) - gamma*P_O_O), R), pi_H)
+
+# Repeating the value function estimation
+rep = 0
+for rep in tqdm(range(int(Rep_max)), leave=False):
+
+    # Value function estimation
+    ValueFunction = np.zeros((n_dim_observable_states))
+    episode = 0
+    environment.reset(init_state_observable, init_state_hidden)
+    state_observable = init_state_observable 
+    while episode_max > episode:
+        episode = episode + 1
+
+        state_observable_old = copy.deepcopy(state_observable)
+        state_observable, reward = environment.observe()
+        
+        alpha = beta/episode
+
+        ValueFunction[state_observable_old] = ValueFunction[state_observable_old] + alpha*(reward + gamma*ValueFunction[state_observable] - ValueFunction[state_observable_old])
+        if episode == 1:
+            ValueFunction_eposides = copy.deepcopy(ValueFunction.reshape(1,n_dim_observable_states))
+        else:
+            ValueFunction_eposides = np.concatenate((ValueFunction_eposides, ValueFunction.reshape(1,n_dim_observable_states)), axis=0)
+
+
+    # Storing the estimated value functions and their error from the optimal value for each repetition
+    ValueFunction_eposides_err = np.linalg.norm(ValueFunction_eposides-np.matlib.repmat(ValueFunction_opt, int(episode_max), 1), axis=1)/np.linalg.norm(ValueFunction_opt)
+    if rep == 0:
+        ValueFunction_eposides_reps = copy.deepcopy(ValueFunction_eposides.reshape(np.size(ValueFunction_eposides, axis=0), n_dim_observable_states, 1))
+        ValueFunction_eposides_err_reps = copy.deepcopy(ValueFunction_eposides_err.reshape(np.size(ValueFunction_eposides_err, axis=0), 1, 1))
+    else:
+        ValueFunction_eposides_reps = np.concatenate((ValueFunction_eposides_reps, ValueFunction_eposides.reshape(np.size(ValueFunction_eposides, axis=0), n_dim_observable_states, 1)), axis=2)
+        ValueFunction_eposides_err_reps = np.concatenate((ValueFunction_eposides_err_reps, ValueFunction_eposides_err.reshape(np.size(ValueFunction_eposides_err, axis=0), 1, 1)), axis=2)
+
+# Mean and standard deviation calculation of estimated value functions over the repetitions
+ValueFunction_eposides_reps_ave = np.mean(ValueFunction_eposides_reps, axis=2)
+ValueFunction_eposides_err_reps_ave = np.mean(ValueFunction_eposides_err_reps, axis=2)
+ValueFunction_eposides_reps_std = np.std(ValueFunction_eposides_reps, axis=2)
+ValueFunction_eposides_err_reps_std = np.std(ValueFunction_eposides_err_reps, axis=2)
+
+# Plot the results
+iterations = np.arange(1, episode_max+1).reshape(np.size(np.arange(1, episode_max+1)), 1)
+iterations = np.matlib.repmat(iterations, 1, Rep_max).flatten()
+event1  = [r'$v_{k}(0)$']*np.size(iterations)
+event2  = [r'$v_{k}(1)$']*np.size(iterations)
+event_opt = [r'$v^{*}$']*np.size(iterations)
+event1.extend(event_opt)
+event2.extend(event_opt)
+event1 = np.asarray(event1)
+event2 = np.asarray(event2)
+df0 = {'Iterations': np.append(iterations, iterations), r'$v_{k}(0)$': np.append(ValueFunction_eposides_reps[:, 0].flatten(), ValueFunction_opt[0]*np.ones(np.size(iterations))), 'Value functions': event1}
+df0 = pd.DataFrame(data=df0)
+df1 = {'Iterations': np.append(iterations, iterations), r'$v_{k}(1)$': np.append(ValueFunction_eposides_reps[:, 1].flatten(), ValueFunction_opt[1]*np.ones(np.size(iterations))), 'Value functions': event2}
+df1 = pd.DataFrame(data=df1)
+df = {'Iterations': iterations, r'$\frac{\|v_{k}-v^{*}\|_{2}}{\|v^{*}\|_{2}}$': ValueFunction_eposides_err_reps.flatten()}
+df = pd.DataFrame(data=df)
+sns.set_theme()
+sns.set_context("notebook", font_scale=1.5, rc={"lines.linewidth": 0.5})
+# palette = sns.cubehelix_palette(light=0.1, n_colors=2)
+palette="Set1"
+a = sns.relplot(
+    data=df, kind="line",
+    x="Iterations", y=r'$\frac{\|v_{k}-v^{*}\|_{2}}{\|v^{*}\|_{2}}$', errorbar="sd",
+)
+a.set(ylim=(a_l, a_h))
+b = sns.relplot(
+    data=df0, kind="line",
+    x="Iterations", y=r'$v_{k}(0)$', hue='Value functions', palette=palette, errorbar="sd",
+)
+b.set(ylim=(ValueFunction_opt[0]+b_l, ValueFunction_opt[0]+b_h))
+c = sns.relplot(
+    data=df1, kind="line",
+    x="Iterations", y=r'$v_{k}(1)$', hue='Value functions', palette=palette, errorbar="sd",
+)
+c.set(ylim=(ValueFunction_opt[1]+c_l, ValueFunction_opt[1]+c_h))
 
